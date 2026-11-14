@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2018 The Dopamine Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,35 +16,82 @@
 
 See: dopamine/common/logger.py .
 """
-
 import itertools
 import os
 import pickle
 import sys
 
-
-
 import numpy as np
 import pandas as pd
-
 import tensorflow as tf
+
 
 FILE_PREFIX = 'log'
 ITERATION_PREFIX = 'iteration_'
 
-ALL_GAMES = ['AirRaid', 'Alien', 'Amidar', 'Assault', 'Asterix', 'Asteroids',
-             'Atlantis', 'BankHeist', 'BattleZone', 'BeamRider', 'Berzerk',
-             'Bowling', 'Boxing', 'Breakout', 'Carnival', 'Centipede',
-             'ChopperCommand', 'CrazyClimber', 'DemonAttack', 'DoubleDunk',
-             'ElevatorAction', 'Enduro', 'FishingDerby', 'Freeway', 'Frostbite',
-             'Gopher', 'Gravitar', 'Hero', 'IceHockey', 'Jamesbond',
-             'JourneyEscape', 'Kangaroo', 'Krull', 'KungFuMaster',
-             'MontezumaRevenge', 'MsPacman', 'NameThisGame', 'Phoenix',
-             'Pitfall', 'Pong', 'Pooyan', 'PrivateEye', 'Qbert', 'Riverraid',
-             'RoadRunner', 'Robotank', 'Seaquest', 'Skiing', 'Solaris',
-             'SpaceInvaders', 'StarGunner', 'Tennis', 'TimePilot', 'Tutankham',
-             'UpNDown', 'Venture', 'VideoPinball', 'WizardOfWor', 'YarsRevenge',
-             'Zaxxon']
+ALL_GAMES = [
+    'AirRaid',
+    'Alien',
+    'Amidar',
+    'Assault',
+    'Asterix',
+    'Asteroids',
+    'Atlantis',
+    'BankHeist',
+    'BattleZone',
+    'BeamRider',
+    'Berzerk',
+    'Bowling',
+    'Boxing',
+    'Breakout',
+    'Carnival',
+    'Centipede',
+    'ChopperCommand',
+    'CrazyClimber',
+    'DemonAttack',
+    'DoubleDunk',
+    'ElevatorAction',
+    'Enduro',
+    'FishingDerby',
+    'Freeway',
+    'Frostbite',
+    'Gopher',
+    'Gravitar',
+    'Hero',
+    'IceHockey',
+    'Jamesbond',
+    'JourneyEscape',
+    'Kangaroo',
+    'Krull',
+    'KungFuMaster',
+    'MontezumaRevenge',
+    'MsPacman',
+    'NameThisGame',
+    'Phoenix',
+    'Pitfall',
+    'Pong',
+    'Pooyan',
+    'PrivateEye',
+    'Qbert',
+    'Riverraid',
+    'RoadRunner',
+    'Robotank',
+    'Seaquest',
+    'Skiing',
+    'Solaris',
+    'SpaceInvaders',
+    'StarGunner',
+    'Tennis',
+    'TimePilot',
+    'Tutankham',
+    'UpNDown',
+    'Venture',
+    'VideoPinball',
+    'WizardOfWor',
+    'YarsRevenge',
+    'Zaxxon',
+]
+MUJOCO_GAMES = ['Ant', 'HalfCheetah', 'Hopper', 'Humanoid', 'Walker2d']
 
 
 def load_baselines(base_dir, verbose=False):
@@ -58,16 +106,17 @@ def load_baselines(base_dir, verbose=False):
   """
   experimental_data = {}
   for game in ALL_GAMES:
-    for agent in ['dqn', 'c51', 'rainbow', 'implicit_quantile']:
+    for agent in ['dqn', 'c51', 'rainbow', 'iqn']:
       game_data_file = os.path.join(base_dir, agent, '{}.pkl'.format(game))
-      if not tf.gfile.Exists(game_data_file):
+      if not tf.io.gfile.exists(game_data_file):
         if verbose:
           # pylint: disable=superfluous-parens
-          print('Unable to load data for agnet {} on game {}'.format(agent,
-                                                                     game))
+          print(
+              'Unable to load data for agent {} on game {}'.format(agent, game)
+          )
           # pylint: enable=superfluous-parens
         continue
-      with tf.gfile.Open(game_data_file, 'rb') as f:
+      with tf.io.gfile.GFile(game_data_file, 'rb') as f:
         if sys.version_info.major >= 3:
           # pylint: disable=unexpected-keyword-arg
           single_agent_data = pickle.load(f, encoding='latin1')
@@ -75,9 +124,21 @@ def load_baselines(base_dir, verbose=False):
         else:
           single_agent_data = pickle.load(f)
         single_agent_data['agent'] = agent
+        # The dataframe rows are all read as 'objects', which causes a
+        # ValueError when merging below. We cast the numerics to float64s to
+        # avoid this.
+        for field_name in single_agent_data.keys():
+          try:
+            single_agent_data[field_name] = single_agent_data[
+                field_name
+            ].astype(np.float64)
+          except ValueError:
+            # This will catch any non-numerics that cannot be cast to float64.
+            continue
         if game in experimental_data:
           experimental_data[game] = experimental_data[game].merge(
-              single_agent_data, how='outer')
+              single_agent_data, how='outer'
+          )
         else:
           experimental_data[game] = single_agent_data
   return experimental_data
@@ -88,8 +149,8 @@ def load_statistics(log_path, iteration_number=None, verbose=True):
 
   Args:
     log_path: string, provides the full path to the training/eval statistics.
-    iteration_number: The iteration number of the statistics object we want
-      to read. If set to None, load the latest version.
+    iteration_number: The iteration number of the statistics object we want to
+      read. If set to None, load the latest version.
     verbose: Whether to output information about the load procedure.
 
   Returns:
@@ -110,7 +171,7 @@ def load_statistics(log_path, iteration_number=None, verbose=True):
     print('Reading statistics from: {}'.format(log_file))
     # pylint: enable=superfluous-parens
 
-  with tf.gfile.Open(log_file, 'rb') as f:
+  with tf.io.gfile.GFile(log_file, 'rb') as f:
     return pickle.load(f), iteration_number
 
 
@@ -143,13 +204,13 @@ def get_latest_iteration(path):
     ValueError: if there is not available log data at the given path.
   """
   glob = os.path.join(path, '{}_[0-9]*'.format(FILE_PREFIX))
-  log_files = tf.gfile.Glob(glob)
+  log_files = tf.io.gfile.glob(glob)
 
   if not log_files:
     raise ValueError('No log data found at {}'.format(path))
 
   def extract_iteration(x):
-    return int(x[x.rfind('_') + 1:])
+    return int(x[x.rfind('_') + 1 :])
 
   latest_iteration = max(extract_iteration(x) for x in log_files)
   return latest_iteration
@@ -166,7 +227,7 @@ def summarize_data(data, summary_keys):
 
   Example:
     data = load_statistics(...)
-    get_iteration_summmary(data, ['train_episode_returns',
+    summarize_data(data, ['train_episode_returns',
         'eval_episode_returns'])
 
   Returns:
@@ -190,13 +251,14 @@ def summarize_data(data, summary_keys):
   return summary
 
 
-def read_experiment(log_path,
-                    parameter_set=None,
-                    job_descriptor='',
-                    iteration_number=None,
-                    summary_keys=('train_episode_returns',
-                                  'eval_episode_returns'),
-                    verbose=False):
+def read_experiment(
+    log_path,
+    parameter_set=None,
+    job_descriptor='',
+    iteration_number=None,
+    summary_keys=('train_episode_returns', 'eval_episode_returns'),
+    verbose=False,
+):
   """Reads in a set of experimental results from log_path.
 
   The provided parameter_set is an ordered_dict which
@@ -245,8 +307,9 @@ def read_experiment(log_path,
   expected_num_rows = num_parameter_settings * expected_num_iterations
 
   # Create DataFrame with predicted number of rows.
-  data_frame = pd.DataFrame(index=np.arange(0, expected_num_rows),
-                            columns=column_names)
+  data_frame = pd.DataFrame(
+      index=np.arange(0, expected_num_rows), columns=column_names
+  )
   row_index = 0
 
   # Now take their cross product. This generates tuples of the form
@@ -257,23 +320,38 @@ def read_experiment(log_path,
       name = job_descriptor.format(*parameter_tuple)
     else:
       # Construct name for values.
-      name = '-'.join([keys[i] + '_' + str(parameter_tuple[i])
-                       for i in range(len(keys))])
+      name = '-'.join(
+          [keys[i] + '_' + str(parameter_tuple[i]) for i in range(len(keys))]
+      )
 
     experiment_path = '{}/{}/logs'.format(log_path, name)
 
     raw_data, last_iteration = load_statistics(
-        experiment_path, iteration_number=iteration_number, verbose=verbose)
+        experiment_path, iteration_number=iteration_number, verbose=verbose
+    )
 
     summary = summarize_data(raw_data, summary_keys)
-    for iteration in range(last_iteration):
+    for iteration in range(last_iteration + 1):
       # The row contains all the parameters, the iteration, and finally the
       # requested values.
-      row_data = (list(parameter_tuple) + [iteration] +
-                  [summary[key][iteration] for key in summary_keys])
+      row_data = (
+          list(parameter_tuple)
+          + [iteration]
+          + [summary[key][iteration] for key in summary_keys]
+      )
       data_frame.loc[row_index] = row_data
 
       row_index += 1
+
+  # The dataframe rows are all read as 'objects', which causes a
+  # ValueError when merging below. We cast the numerics to float64s to
+  # avoid this.
+  for field_name in data_frame.keys():
+    try:
+      data_frame[field_name] = data_frame[field_name].astype(np.float64)
+    except ValueError:
+      # This will catch any non-numerics that cannot be cast to float64.
+      continue
 
   # Shed any unused rows.
   return data_frame.drop(np.arange(row_index, expected_num_rows))

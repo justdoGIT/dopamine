@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2018 The Dopamine Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,17 +18,24 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from unittest import mock
 
-
-import mock
 import tensorflow as tf
 
 
 class MockReplayBuffer(object):
   """Mock ReplayBuffer to verify the way the agent interacts with it."""
 
-  def __init__(self):
-    with tf.variable_scope('MockReplayBuffer', reuse=tf.AUTO_REUSE):
+  def __init__(self, is_jax=False):
+    if is_jax:
       self.add = mock.Mock()
-      self.memory = mock.Mock()
-      self.memory.add_count = 0
+      self.add_count = 0
+      self.sum_tree = mock.Mock()
+      self._sampling_distribution = mock.Mock()
+    else:
+      with tf.compat.v1.variable_scope(
+          'MockReplayBuffer', reuse=tf.compat.v1.AUTO_REUSE
+      ):
+        self.add = mock.Mock()
+        self.memory = mock.Mock()
+        self.memory.add_count = 0

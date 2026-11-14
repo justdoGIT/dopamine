@@ -1,8 +1,16 @@
 # Dopamine
+[Getting Started](#getting-started) |
+[Docs][docs] |
+[Baseline Results][baselines] |
+[Changelist](https://google.github.io/dopamine/docs/changelist)
 
 <div align="center">
   <img src="https://google.github.io/dopamine/images/dopamine_logo.png"><br><br>
 </div>
+
+**Note: Dopamine is currently in (best effort) maintenance mode.** We will do
+our best to address issues that come up, but due to lack of bandwidth we can't
+guarantee issues will be resolved promptly. We apologize for this!
 
 Dopamine is a research framework for fast prototyping of reinforcement learning
 algorithms. It aims to fill the need for a small, easily grokked codebase in
@@ -15,173 +23,114 @@ Our design principles are:
 * _Flexible development_: Make it easy for new users to try out research ideas.
 * _Compact and reliable_: Provide implementations for a few, battle-tested
                           algorithms.
-* _Reproducible_: Facilitate reproducibility in results.
+* _Reproducible_: Facilitate reproducibility in results. In particular, our
+                  setup follows the recommendations given by
+                  [Machado et al. (2018)][machado].
 
-In the spirit of these principles, this first version focuses on supporting the
-state-of-the-art, single-GPU *Rainbow* agent ([Hessel et al., 2018][rainbow])
-applied to Atari 2600 game-playing ([Bellemare et al., 2013][ale]).
-Specifically, our Rainbow agent implements the three components identified as
-most important by [Hessel et al.][rainbow]:
+Dopamine supports the following agents, implemented with jax:
 
-* n-step Bellman updates (see e.g. [Mnih et al., 2016][a3c])
-* Prioritized experience replay ([Schaul et al., 2015][prioritized_replay])
-* Distributional reinforcement learning ([C51; Bellemare et al., 2017][c51])
+* DQN ([Mnih et al., 2015][dqn])
+* C51 ([Bellemare et al., 2017][c51])
+* Rainbow ([Hessel et al., 2018][rainbow])
+* IQN ([Dabney et al., 2018][iqn])
+* SAC ([Haarnoja et al., 2018][sac])
+* PPO ([Schulman et al., 2017][ppo])
 
-For completeness, we also provide an implementation of DQN
-([Mnih et al., 2015][dqn]).
-For additional details, please see our
-[documentation](https://github.com/google/dopamine/tree/master/docs).
+For more information on the available agents, see the [docs](https://google.github.io/dopamine/docs).
+
+Many of these agents also have a tensorflow (legacy) implementation, though
+newly added agents are likely to be jax-only.
 
 This is not an official Google product.
 
-## Instructions
-### Install via source
-Installing from source allows you to modify the agents and experiments as
-you please, and is likely to be the pathway of choice for long-term use.
-These instructions assume that you've already set up your favourite package
-manager (e.g. `apt` on Ubuntu, `homebrew` on Mac OS X), and that a C++ compiler
-is available from the command-line (almost certainly the case if your favourite
-package manager works).
+## Getting Started
 
-The instructions below assume that you will be running Dopamine in a *virtual
-environment*. A virtual environment lets you control which dependencies are
-installed for which program; however, this step is optional and you may choose
-to ignore it.
 
-Dopamine is a Tensorflow-based framework, and we recommend you also consult
-the [Tensorflow documentation](https://www.tensorflow.org/install)
-for additional details.
+We provide docker containers for using Dopamine.
+Instructions can be found [here](https://google.github.io/dopamine/docker/).
 
-Finally, these instructions are for Python 2.7. While Dopamine is Python 3
-compatible, there may be some additional steps needed during installation.
+Alternatively, Dopamine can be installed from source (preferred) or installed
+with pip. For either of these methods, continue reading at prerequisites.
 
-#### Ubuntu
+### Prerequisites
 
-First set up the virtual environment:
+Dopamine supports Atari environments and Mujoco environments. Install the
+environments you intend to use before you install Dopamine:
 
-```
-sudo apt-get install virtualenv
-virtualenv --python=python2.7 dopamine-env
-source dopamine-env/bin/activate
-```
+**Atari**
 
-This will create a directory called `dopamine-env` in which your virtual
-environment lives. The last command activates the environment.
+1. These should now come packaged with
+   [ale_py](https://github.com/Farama-Foundation/Arcade-Learning-Environment).
+1. You may need to manually run some steps to properly install `baselines`, see
+   [instructions](https://github.com/openai/baselines).
 
-Then, install the dependencies to Dopamine:
+**Mujoco**
+
+1. Install Mujoco and get a license
+[here](https://github.com/openai/mujoco-py#install-mujoco).
+2. Run `pip install mujoco-py` (we recommend using a
+[virtual environment](virtualenv)).
+
+### Installing from Source
+
+
+The most common way to use Dopamine is to install it from source and modify
+the source code directly:
 
 ```
-sudo apt-get install cmake zlib1g-dev
-pip install absl-py atari-py gin-config gym opencv-python tensorflow
+git clone https://github.com/google/dopamine
 ```
 
-During installation, you may safely ignore the following error message:
-*tensorflow 1.10.1 has requirement numpy<=1.14.5,>=1.13.3, but you'll have
-numpy 1.15.1 which is incompatible*.
-
-Finally, download the Dopamine source, e.g.
+After cloning, install dependencies:
 
 ```
-git clone https://github.com/google/dopamine.git
+pip install -r dopamine/requirements.txt
 ```
 
-#### Mac OS X
+Dopamine supports tensorflow (legacy) and jax (actively maintained) agents.
+View the [Tensorflow documentation](https://www.tensorflow.org/install) for
+more information on installing tensorflow.
 
-First set up the virtual environment:
+Note: We recommend using a [virtual environment](virtualenv) when working with Dopamine.
 
-```
-pip install virtualenv
-virtualenv --python=python2.7 dopamine-env
-source dopamine-env/bin/activate
-```
+### Installing with Pip
 
-This will create a directory called `dopamine-env` in which your virtual
-environment lives. The last command activates the environment.
+Note: We strongly recommend installing from source for most users.
 
-Then, install the dependencies to Dopamine:
+Installing with pip is simple, but Dopamine is designed to be modified
+directly. We recommend installing from source for writing your own experiments.
 
 ```
-brew install cmake zlib
-pip install absl-py atari-py gin-config gym opencv-python tensorflow
-```
-
-During installation, you may safely ignore the following error message:
-*tensorflow 1.10.1 has requirement numpy<=1.14.5,>=1.13.3, but you'll have
-numpy 1.15.1 which is incompatible*.
-
-Finally, download the Dopamine source, e.g.
-
-```
-git clone https://github.com/google/dopamine.git
-```
-
-#### Running tests
-
-You can test whether the installation was successful by running the following:
-
-```
-cd dopamine
-export PYTHONPATH=${PYTHONPATH}:.
-python tests/atari_init_test.py
-```
-
-The entry point to the standard Atari 2600 experiment is
-[`dopamine/atari/train.py`](https://github.com/google/dopamine/blob/master/dopamine/atari/train.py).
-To run the basic DQN agent,
-
-```
-python -um dopamine.atari.train \
-  --agent_name=dqn \
-  --base_dir=/tmp/dopamine \
-  --gin_files='dopamine/agents/dqn/configs/dqn.gin'
-```
-
-By default, this will kick off an experiment lasting 200 million frames.
-The command-line interface will output statistics about the latest training
-episode:
-
-```
-[...]
-I0824 17:13:33.078342 140196395337472 tf_logging.py:115] gamma: 0.990000
-I0824 17:13:33.795608 140196395337472 tf_logging.py:115] Beginning training...
-Steps executed: 5903 Episode length: 1203 Return: -19.
-```
-
-To get finer-grained information about the process,
-you can adjust the experiment parameters in
-[`dopamine/agents/dqn/configs/dqn.gin`](https://github.com/google/dopamine/blob/master/dopamine/agents/dqn/configs/dqn.gin),
-in particular by reducing `Runner.training_steps` and `Runner.evaluation_steps`,
-which together determine the total number of steps needed to complete an
-iteration. This is useful if you want to inspect log files or checkpoints, which
-are generated at the end of each iteration.
-
-More generally, the whole of Dopamine is easily configured using the
-[gin configuration framework](https://github.com/google/gin-config).
-
-
-### Install as a library
-An easy, alternative way to install Dopamine is as a Python library:
-
-```
-sudo apt-get install cmake  # Or brew install, see Mac OS X instructions above.
 pip install dopamine-rl
-pip install atari-py
 ```
 
-Depending on your particular system configuration, you may also need to install
-zlib (see "Install via source" above).
+### Running tests
 
-#### Running tests
-From the root directory, tests can be run with a command such as:
+You can test whether the installation was successful by running the following
+from the dopamine root directory.
 
 ```
-python -um tests.agents.rainbow.rainbow_agent_test
+export PYTHONPATH=$PYTHONPATH:$PWD
+python -m tests.dopamine.atari_init_test
 ```
 
-### References
+## Next Steps
+
+View the [docs][docs] for more information on training agents.
+
+We supply [baselines][baselines] for each Dopamine agent.
+
+We also provide a set of [Colaboratory notebooks](https://github.com/google/dopamine/tree/master/dopamine/colab)
+which demonstrate how to use Dopamine.
+
+## References
 
 [Bellemare et al., *The Arcade Learning Environment: An evaluation platform for
 general agents*. Journal of Artificial Intelligence Research, 2013.][ale]
+
+[Machado et al., *Revisiting the Arcade Learning Environment: Evaluation
+Protocols and Open Problems for General Agents*, Journal of Artificial
+Intelligence Research, 2018.][machado]
 
 [Hessel et al., *Rainbow: Combining Improvements in Deep Reinforcement Learning*.
 Proceedings of the AAAI Conference on Artificial Intelligence, 2018.][rainbow]
@@ -189,26 +138,45 @@ Proceedings of the AAAI Conference on Artificial Intelligence, 2018.][rainbow]
 [Mnih et al., *Human-level Control through Deep Reinforcement Learning*. Nature,
 2015.][dqn]
 
-[Mnih et al., *Asynchronous Methods for Deep Reinforcement Learning*. Proceedings
-of the International Conference on Machine Learning, 2016.][a3c]
-
 [Schaul et al., *Prioritized Experience Replay*. Proceedings of the International
 Conference on Learning Representations, 2016.][prioritized_replay]
 
-### Giving credit
+[Haarnoja et al., *Soft Actor-Critic Algorithms and Applications*,
+arXiv preprint arXiv:1812.05905, 2018.][sac]
 
-If you use Dopamine in your work, we ask that you cite this repository as a
-reference. The preferred format (authors in alphabetical order) is:
+[Schulman et al., *Proximal Policy Optimization Algorithms*.][ppo]
 
-Marc G. Bellemare, Pablo Samuel Castro, Carles Gelada, Saurabh Kumar, Subhodeep Moitra.
-Dopamine, https://github.com/google/dopamine, 2018.
+## Giving credit
+
+If you use Dopamine in your work, we ask that you cite our
+[white paper][dopamine_paper]. Here is an example BibTeX entry:
+
+```
+@article{castro18dopamine,
+  author    = {Pablo Samuel Castro and
+               Subhodeep Moitra and
+               Carles Gelada and
+               Saurabh Kumar and
+               Marc G. Bellemare},
+  title     = {Dopamine: {A} {R}esearch {F}ramework for {D}eep {R}einforcement {L}earning},
+  year      = {2018},
+  url       = {http://arxiv.org/abs/1812.06110},
+  archivePrefix = {arXiv}
+}
+```
 
 
-
-[ale]: https://arxiv.org/abs/1207.4708
+[docs]: https://google.github.io/dopamine/docs/
+[baselines]: https://google.github.io/dopamine/baselines
+[machado]: https://jair.org/index.php/jair/article/view/11182
+[ale]: https://jair.org/index.php/jair/article/view/10819
 [dqn]: https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf
-[a3c]: https://arxiv.org/abs/1602.01783
+[a3c]: http://proceedings.mlr.press/v48/mniha16.html
 [prioritized_replay]: https://arxiv.org/abs/1511.05952
-[c51]: https://arxiv.org/abs/1707.06887
-[rainbow]: https://arxiv.org/abs/1710.02298
+[c51]: http://proceedings.mlr.press/v70/bellemare17a.html
+[rainbow]: https://www.aaai.org/ocs/index.php/AAAI/AAAI18/paper/download/17204/16680
 [iqn]: https://arxiv.org/abs/1806.06923
+[sac]: https://arxiv.org/abs/1812.05905
+[ppo]: https://arxiv.org/abs/1707.06347
+[dopamine_paper]: https://arxiv.org/abs/1812.06110
+[vitualenv]: https://docs.python.org/3/library/venv.html#creating-virtual-environments
